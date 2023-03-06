@@ -2,6 +2,7 @@ package com.Cra2iTeT.listener;
 
 import com.Cra2iTeT.domain.Activity;
 import com.Cra2iTeT.service.ActivityService;
+import com.Cra2iTeT.util.BloomFilter;
 import com.alibaba.fastjson.JSON;
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
@@ -32,6 +33,9 @@ public class RedisActivityMQListener {
     @Resource
     ActivityService activityService;
 
+    @Resource
+    BloomFilter bloomFilter;
+
     @Async("MQListener")
     @Scheduled(fixedRate = 900000)
     public void ActivitySetListener() {
@@ -55,10 +59,13 @@ public class RedisActivityMQListener {
                 // 上架活动
                 if (Boolean.TRUE.equals(stringRedisTemplate.opsForValue()
                         .setIfAbsent("activity:" + activity.getId(), JSON.toJSONString(activity)))) {
+                    // 上架库存
                     int stock0 = activity.getStock() / 2;
                     int stock1 = activity.getStock() - stock0;
                     setStock(activityId, stock0, 0);
                     setStock(activityId, stock1, 1);
+                    // 设置过滤器
+                    bloomFilter.add("bloom:activity", activityId);
                     // 删除消息
                     stringRedisTemplate.opsForZSet().remove("mq:activity", activityId);
                 }
