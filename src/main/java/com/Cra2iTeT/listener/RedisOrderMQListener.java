@@ -25,13 +25,13 @@ import java.util.concurrent.TimeUnit;
 public class RedisOrderMQListener {
 
     @Resource
-    Redisson redisson;
+    private Redisson redisson;
 
     @Resource
-    StringRedisTemplate stringRedisTemplate;
+    private StringRedisTemplate stringRedisTemplate;
 
     @Resource
-    OrderService orderService;
+    private OrderService orderService;
 
     /**
      * 每十五分钟执行一次获取消息

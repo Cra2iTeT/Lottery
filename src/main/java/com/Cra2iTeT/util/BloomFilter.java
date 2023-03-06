@@ -13,7 +13,7 @@ import javax.annotation.Resource;
 @Component
 public class BloomFilter {
     @Resource
-    StringRedisTemplate stringRedisTemplate;
+    private StringRedisTemplate stringRedisTemplate;
 
     public boolean add(String prefix, String key) {
         int offset = hash(key);

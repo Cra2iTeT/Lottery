@@ -37,8 +37,8 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-com.Cra2iTeT.test</artifactId>
+            <scope>com.Cra2iTeT.test</scope>
         </dependency>
 
         <dependency>

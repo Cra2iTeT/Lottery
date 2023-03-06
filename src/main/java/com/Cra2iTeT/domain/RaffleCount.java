@@ -9,17 +9,17 @@ import lombok.NoArgsConstructor;
 
 /**
  * @author Cra2iTeT
- * @since 2023/3/6 16:51
+ * @since 2023/3/6 19:39
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("linkClick")
-public class LinkClick {
+@TableName("raffleCount")
+public class RaffleCount {
     @TableId(type = IdType.AUTO)
     private Long id;
+    private Integer count;
     private Long userId;
-    private Long belongUserId;
-    private Long createTime;
     private Long activityId;
+    private Integer totalCount;
 }
