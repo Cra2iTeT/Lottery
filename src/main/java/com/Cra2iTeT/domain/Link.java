@@ -15,9 +15,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @TableName("link")
 public class Link {
-    @TableId("link")
     private Long id;
     private String inetAddress;
     private Long userId;
     private Long belongUserId;
+    private Long belongActivityId;
 }

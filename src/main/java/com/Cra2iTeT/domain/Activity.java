@@ -18,7 +18,6 @@ import java.util.Date;
 @NoArgsConstructor
 @TableName("activity")
 public class Activity {
-    @TableId(type = IdType.AUTO)
     private Long id;
     private String context;
     private Integer stock;

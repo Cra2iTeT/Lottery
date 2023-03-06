@@ -18,7 +18,6 @@ import java.util.Date;
 @NoArgsConstructor
 @TableName("order")
 public class Order {
-    @TableId(type = IdType.AUTO)
     private Long id;
     private String no;
     private Long userId;
