@@ -19,11 +19,11 @@ public class ThreadPoolConfig {
         //最大线程数
         executor.setMaxPoolSize(4);
         //核心线程数
-        executor.setCorePoolSize(1);
+        executor.setCorePoolSize(2);
         //任务队列的大小
         executor.setQueueCapacity(10);
         //线程前缀名
-        executor.setThreadNamePrefix("god-jiang-");
+        executor.setThreadNamePrefix("Redis-MQ-Listener-");
         //线程存活时间
         executor.setKeepAliveSeconds(30);
 

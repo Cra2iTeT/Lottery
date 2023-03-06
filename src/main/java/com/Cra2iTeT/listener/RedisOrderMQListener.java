@@ -4,16 +4,15 @@ import com.Cra2iTeT.domain.Order;
 import com.Cra2iTeT.service.OrderService;
 import com.alibaba.fastjson.JSON;
 import org.redisson.Redisson;
-import org.redisson.RedissonWriteLock;
 import org.redisson.api.RLock;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -23,7 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 @EnableAsync
-public class RedisMQListener {
+public class RedisOrderMQListener {
 
     @Resource
     Redisson redisson;
@@ -40,36 +39,43 @@ public class RedisMQListener {
     @Async("MQListener")
     @Scheduled(fixedRate = 905000)
     void orderSetListener() {
-        Set<String> zSet = stringRedisTemplate.opsForZSet().range("activity:order", 0, System.currentTimeMillis());
+        Set<String> zSet = stringRedisTemplate.opsForZSet()
+                .range("mq:order", 0, System.currentTimeMillis());
         if (zSet == null || zSet.isEmpty()) {
             return;
         }
-        Iterator<String> iterator = zSet.iterator();
-        while (iterator.hasNext()) {
-            consumerOrderSetMQ(iterator.next());
+        for (String s : zSet) {
+            consumerOrderSetMQ(s);
         }
     }
 
     /**
      * 消费消息
-     * @param msg
+     *
+     * @param orderId
      */
-    private void consumerOrderSetMQ(String msg) {
-        Order order;
+    private void consumerOrderSetMQ(String orderId) {
         try {
-            order = JSON.parseObject(msg, Order.class);
-            RLock rLock = redisson.getLock("lock:order:" + order.getNo());
+            RLock rLock = redisson.getLock("lock:order:" + orderId);
             // 获取锁失败则已经有其他线程获取到锁，已经读到这条消息，不需要再重复消费
             if (rLock.tryLock()) {
                 // 执行判断订单过期操作
+                String orderJson = (String) stringRedisTemplate.opsForHash()
+                        .get("order:unpaid:", orderId);
+                if (StringUtils.isEmpty(orderJson)) {
+                    return;
+                }
+                Order order = JSON.parseObject(orderJson, Order.class);
                 try {
                     if (rollBackStock(order)) {
                         // ack 删除消息
                         stringRedisTemplate.opsForZSet()
-                                .remove("activity:order", JSON.toJSONString(order));
+                                .remove("mq:order", orderId);
                     }
                 } finally {
-                    rLock.unlock();
+                    if (rLock.isLocked() && rLock.isHeldByCurrentThread()) {
+                        rLock.unlock();
+                    }
                 }
             }
         } catch (RuntimeException e) {
@@ -79,10 +85,12 @@ public class RedisMQListener {
 
     /**
      * 返还库存，向数据库存入订单
+     *
      * @param order
      * @return
      */
     private boolean rollBackStock(Order order) {
+        // 获取订单
         RLock stockLock = redisson.getLock("lock:stock0:" + order.getActivityId());
         int bucket = 0;
         try {
@@ -103,7 +111,7 @@ public class RedisMQListener {
                 return true;
             }
         } finally {
-            if (stockLock.isLocked()) {
+            if (stockLock.isLocked() && stockLock.isHeldByCurrentThread()) {
                 stockLock.unlock();
             }
         }
