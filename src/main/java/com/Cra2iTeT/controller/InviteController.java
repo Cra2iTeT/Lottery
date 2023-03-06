@@ -74,6 +74,7 @@ public class InviteController {
         if (StringUtils.isEmpty(activityJson)) {
             return new R<>(401, "活动不存在");
         }
+        // TODO 加锁
         // 判断是否已经生成过本场的邀请连接
         Long userId = LocalUserInfo.get().getId();
         String linkJson = (String) stringRedisTemplate.opsForHash()
