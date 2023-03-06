@@ -84,6 +84,7 @@ public class InviteController {
     public R<String> clickLink(@PathVariable("activityId") long activityId
             , @PathVariable("inetAddress") String inetAddress) {
         // TODO 点击链接增加指定用户抽奖次数
+        String test = "sss";
         return new R<>(200, "成功接受邀请");
     }
 }
