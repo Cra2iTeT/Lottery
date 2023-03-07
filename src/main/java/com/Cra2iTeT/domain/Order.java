@@ -1,5 +1,6 @@
 package com.Cra2iTeT.domain;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -22,6 +23,6 @@ public class Order {
     private String no;
     private Long userId;
     private Byte isDeleted;
-    private Date createTime;
+    private DateTime createTime;
     private Long activityId;
 }

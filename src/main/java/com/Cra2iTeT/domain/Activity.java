@@ -1,5 +1,6 @@
 package com.Cra2iTeT.domain;
 
+import cn.hutool.core.date.DateTime;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -21,7 +22,7 @@ public class Activity {
     private Long id;
     private String context;
     private Integer stock;
-    private Date startTime;
-    private Date endTime;
+    private DateTime startTime;
+    private DateTime endTime;
     private Byte level;
 }
