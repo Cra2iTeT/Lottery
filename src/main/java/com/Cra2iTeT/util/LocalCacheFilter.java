@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 public class LocalCacheFilter {
 
-    private static ConcurrentHashMap<String, AtomicLong> concurrentHashMap;
+    private static final ConcurrentHashMap<String, AtomicLong> concurrentHashMap = new ConcurrentHashMap<>();
 
     public boolean filter(String key) {
         if (concurrentHashMap.containsKey(key) && concurrentHashMap.get(key).get() > 0) {
