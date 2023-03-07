@@ -152,8 +152,8 @@ public class InviteController {
                         curTime + 15 * 60 * 1000);
 
                 // 写入点击记录缓存
-                stringRedisTemplate.opsForSet().add("activity:linkClick:record:" + activityId + link.getBelongUserId(),
-                        String.valueOf(userId));
+                stringRedisTemplate.opsForSet().add("activity:linkClick:record:" +
+                                activityId + link.getBelongUserId(), String.valueOf(userId));
             }, executor);
         } finally {
             if (inviteRecordLock.isLocked() && inviteRecordLock.isHeldByCurrentThread()) {

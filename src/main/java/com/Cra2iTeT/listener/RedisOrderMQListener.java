@@ -37,7 +37,7 @@ public class RedisOrderMQListener {
      * 每十五分钟执行一次获取消息
      */
     @Async("MQListener")
-    @Scheduled(fixedRate = 905000)
+    @Scheduled(fixedRate = 15 * 60 * 1000 + 5000)
     void orderSetListener() {
         Set<String> zSet = stringRedisTemplate.opsForZSet()
                 .range("mq:order", 0, System.currentTimeMillis());
@@ -45,7 +45,7 @@ public class RedisOrderMQListener {
             return;
         }
         for (String s : zSet) {
-            consumerOrderSetMQ(s);
+            consumeOrderSetMQ(s);
         }
     }
 
@@ -54,7 +54,7 @@ public class RedisOrderMQListener {
      *
      * @param orderId
      */
-    private void consumerOrderSetMQ(String orderId) {
+    private void consumeOrderSetMQ(String orderId) {
         try {
             RLock rLock = redisson.getLock("lock:order:" + orderId);
             // 获取锁失败则已经有其他线程获取到锁，已经读到这条消息，不需要再重复消费

@@ -3,6 +3,7 @@ package com.Cra2iTeT.listener;
 import com.Cra2iTeT.domain.Activity;
 import com.Cra2iTeT.service.ActivityService;
 import com.Cra2iTeT.util.BloomFilter;
+import com.Cra2iTeT.util.LocalCacheFilter;
 import com.alibaba.fastjson.JSON;
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
@@ -16,6 +17,7 @@ import org.springframework.util.StringUtils;
 import javax.annotation.Resource;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Cra2iTeT
@@ -37,21 +39,27 @@ public class RedisActivityMQListener {
     @Resource
     private BloomFilter bloomFilter;
 
+    @Resource
+    private LocalCacheFilter localCacheFilter;
+
+    // TODO 活动下架消息监听
+
     @Async("MQListener")
-    @Scheduled(fixedRate = 900000)
+    @Scheduled(fixedRate = 30 * 60 * 1000)
     public void ActivitySetListener() {
         long millis = System.currentTimeMillis();
+        // 接受半小时以后的消息
         Set<String> zSet = stringRedisTemplate.opsForZSet()
-                .range("mq:activity", millis, millis + 1800000);
+                .range("mq:activity", millis + 30 * 60 * 1000, millis + 60 * 60 * 1000);
         if (zSet == null || zSet.isEmpty()) {
             return;
         }
         for (String s : zSet) {
-            consumerActivitySetMQ(Long.valueOf(s));
+            consumeActivitySetMQ(Long.valueOf(s));
         }
     }
 
-    private void consumerActivitySetMQ(Long activityId) {
+    private void consumeActivitySetMQ(Long activityId) {
         if (bloomFilter.mightContain("bloom:activity", activityId) ||
                 StringUtils.isEmpty(stringRedisTemplate.opsForValue().get("activity:" + activityId))) {
             return;
@@ -73,6 +81,7 @@ public class RedisActivityMQListener {
                             setStock(activityId, stock1, 1);
                             // 设置过滤器
                             bloomFilter.add("bloom:activity", activityId);
+                            localCacheFilter.add(String.valueOf(activityId), new AtomicLong(activity.getStock()));
                             // 删除消息
                             stringRedisTemplate.opsForZSet().remove("mq:activity", activityId);
                         }
