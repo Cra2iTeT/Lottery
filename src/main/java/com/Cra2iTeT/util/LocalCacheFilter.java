@@ -1,11 +1,7 @@
 package com.Cra2iTeT.util;
 
-import cn.hutool.bloomfilter.BitMapBloomFilter;
-import cn.hutool.bloomfilter.BloomFilterUtil;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Resource;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 

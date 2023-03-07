@@ -2,7 +2,6 @@ package com.Cra2iTeT.service.impl;
 
 import com.Cra2iTeT.domain.LinkClick;
 import com.Cra2iTeT.mapper.LinkClickMapper;
-import com.Cra2iTeT.mapper.LinkMapper;
 import com.Cra2iTeT.service.LinkClickService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;

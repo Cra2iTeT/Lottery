@@ -1,7 +1,6 @@
 package com.Cra2iTeT.listener;
 
 import cn.hutool.core.date.DateTime;
-import com.Cra2iTeT.config.ThreadPoolConfig;
 import com.Cra2iTeT.domain.Activity;
 import com.Cra2iTeT.service.ActivityService;
 import com.Cra2iTeT.util.BloomFilter;
