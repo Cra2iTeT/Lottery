@@ -97,6 +97,10 @@ public class BloomFilter {
         this.remove(prefix, String.valueOf(key1), String.valueOf(key2));
     }
 
+    public void remove(String prefix) {
+        stringRedisTemplate.opsForValue().getAndDelete(prefix);
+    }
+
     private int hash(String key) {
         int hashcode = HashUtil.apHash(key);
         hashcode = HashUtil.rsHash(String.valueOf(hashcode));

@@ -100,17 +100,17 @@ public class RedisActivityMQListener {
                 // 清空库存
                 CompletableFuture<Void> clearFuture2 = clearStock(0, activityId);
                 CompletableFuture<Void> clearFuture1 = clearStock(1, activityId);
+                // 清空过滤器,记录
                 CompletableFuture.runAsync(() -> {
                     localCacheFilter.remove(String.valueOf(activityId));
-                }, executor);
-                CompletableFuture.runAsync(() -> {
                     bloomFilter.remove("bloom:activity", activityId);
                 }, executor);
-
+                CompletableFuture.runAsync(() -> {
+                    stringRedisTemplate.opsForHash().delete("activity:link:" + activityId);
+                    bloomFilter.remove("activity:linkClick:" + activityId);
+                });
                 clearFuture1.join();
                 clearFuture2.join();
-
-
 
                 // 消费消息
                 stringRedisTemplate.opsForZSet().remove("mq:activity:down", activityId);

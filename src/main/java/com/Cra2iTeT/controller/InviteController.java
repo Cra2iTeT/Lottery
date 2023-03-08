@@ -171,12 +171,14 @@ public class InviteController {
                         linkClick.setBelongUserId(link.getBelongUserId());
                         linkClick.setUserId(userId);
                         linkClick.setCreateTime(curTime);
-                        stringRedisTemplate.opsForZSet().add("mq:invite", JSON.toJSONString(linkClick),
-                                curTime + 15 * 60 * 1000);
-
                         // 写入点击记录缓存
                         stringRedisTemplate.opsForSet().add("activity:linkClick:record:" +
                                 activityId + link.getBelongUserId(), String.valueOf(userId));
+                        stringRedisTemplate.expire("activity:linkClick:record:" + activityId
+                                + link.getBelongUserId(), 3, TimeUnit.MINUTES);
+                        // 生产消息
+                        stringRedisTemplate.opsForZSet().add("mq:invite", JSON.toJSONString(linkClick),
+                                curTime + 15 * 60 * 1000);
                     }, executor);
                 } finally {
                     if (inviteRecordLock.isLocked() && inviteRecordLock.isHeldByCurrentThread()) {
