@@ -168,6 +168,7 @@ public class RedisActivityMQListener {
     }
 
     private void setStock(Long activityId, int stock, int idx) {
-        stringRedisTemplate.opsForHash().put("activity:stock" + idx, activityId, stock);
+        stringRedisTemplate.opsForHash().put("activity:stock" + idx, String.valueOf(activityId),
+                String.valueOf(stock));
     }
 }

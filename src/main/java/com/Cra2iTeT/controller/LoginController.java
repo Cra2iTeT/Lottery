@@ -9,15 +9,12 @@ import com.Cra2iTeT.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.util.NumberUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.annotation.Resource;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -27,8 +24,6 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/login")
 public class LoginController {
-    // TODO 用户注册 登录生成token
-
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -50,6 +45,7 @@ public class LoginController {
         if (one != null) {
             return new R<>(401, "账号已经注册");
         }
+        user.setLevel((byte) 1);
         user.setId(IdUtil.getSnowflakeNextId());
         user.setIsDeleted((byte) 0);
         userService.save(user);

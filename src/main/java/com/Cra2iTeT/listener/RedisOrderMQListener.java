@@ -107,7 +107,7 @@ public class RedisOrderMQListener {
                 Integer stock = (Integer) stringRedisTemplate.opsForHash()
                         .get("activity:stock" + bucket, order.getActivityId());
                 stringRedisTemplate.opsForHash().put("activity:stock" + bucket,
-                        order.getActivityId(), stock != null ? stock + 1 : 1);
+                        String.valueOf(order.getActivityId()), String.valueOf(stock != null ? stock + 1 : 1));
                 return true;
             }
         } finally {

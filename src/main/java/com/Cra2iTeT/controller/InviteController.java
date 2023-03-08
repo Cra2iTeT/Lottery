@@ -199,9 +199,8 @@ public class InviteController {
                         return new R<>(200, "接受邀请成功");
                     }
                     CompletableFuture.runAsync(() -> {
-                        stringRedisTemplate.opsForHash().put("activity:raffleCount:max:"
-                                        + activityId, link.getBelongUserId(),
-                                String.valueOf(raffleCount.getTotalCount() + 1));
+                        stringRedisTemplate.opsForHash().put("activity:raffleCount:" + activityId,
+                                String.valueOf(link.getBelongUserId()), String.valueOf(raffleCount));
                     }, executor);
                 } finally {
                     if (raffleCountWriteLock.isLocked() && raffleCountWriteLock.isHeldByCurrentThread()) {
