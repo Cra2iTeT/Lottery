@@ -32,4 +32,8 @@ public class LocalCacheFilter {
         concurrentHashMap.put(key, atomicLong);
     }
 
+    public void remove(String key) {
+        concurrentHashMap.remove(key);
+    }
+
 }

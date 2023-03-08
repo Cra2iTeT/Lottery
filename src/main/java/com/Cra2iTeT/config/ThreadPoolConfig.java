@@ -22,7 +22,7 @@ public class ThreadPoolConfig {
         //核心线程数
         executor.setCorePoolSize(2);
         //任务队列的大小
-        executor.setQueueCapacity(10);
+        executor.setQueueCapacity(100);
         //线程前缀名
         executor.setThreadNamePrefix("Redis-MQ-Listener-Executor-");
         //线程存活时间
@@ -49,7 +49,7 @@ public class ThreadPoolConfig {
         //核心线程数
         executor.setCorePoolSize(3);
         //任务队列的大小
-        executor.setQueueCapacity(10);
+        executor.setQueueCapacity(100);
         //线程前缀名
         Random random = new Random();
         executor.setThreadNamePrefix("Main-Executor-");

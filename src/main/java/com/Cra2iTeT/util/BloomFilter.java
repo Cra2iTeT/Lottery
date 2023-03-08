@@ -30,9 +30,9 @@ public class BloomFilter {
     }
 
     public boolean add(String prefix, String key1, String key2) {
-        int offset = hash(key1, key2);
+        int hashcode = hash(key1, key2);
         return Boolean.TRUE
-                .equals(stringRedisTemplate.opsForValue().getBit(prefix, offset));
+                .equals(stringRedisTemplate.opsForValue().getBit(prefix, hashcode));
     }
 
     public boolean add(String prefix, int key1, int key2) {
@@ -58,9 +58,9 @@ public class BloomFilter {
     }
 
     public boolean mightContain(String prefix, String key1, String key2) {
-        int offset = hash(key1, key2);
+        int hashcode = hash(key1, key2);
         return Boolean.TRUE
-                .equals(stringRedisTemplate.opsForValue().getBit(prefix, offset));
+                .equals(stringRedisTemplate.opsForValue().getBit(prefix, hashcode));
     }
 
     public boolean mightContain(String prefix, int key1, int key2) {
@@ -69,6 +69,32 @@ public class BloomFilter {
 
     public boolean mightContain(String prefix, long key1, long key2) {
         return this.mightContain(prefix, String.valueOf(key1), String.valueOf(key2));
+    }
+
+    public void remove(String prefix, String key) {
+        int hashcode = hash(key);
+        stringRedisTemplate.opsForValue().setBit(prefix, hashcode, false);
+    }
+
+    public void remove(String prefix, int key) {
+        this.remove(prefix, String.valueOf(key));
+    }
+
+    public void remove(String prefix, long key) {
+        this.remove(prefix, String.valueOf(key));
+    }
+
+    public void remove(String prefix, String key1, String key2) {
+        int hashcode = hash(key1, key2);
+        this.remove(prefix, hashcode);
+    }
+
+    public void remove(String prefix, int key1, int key2) {
+        this.remove(prefix, String.valueOf(key1), String.valueOf(key2));
+    }
+
+    public void remove(String prefix, long key1, long key2) {
+        this.remove(prefix, String.valueOf(key1), String.valueOf(key2));
     }
 
     private int hash(String key) {

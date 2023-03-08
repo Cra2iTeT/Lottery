@@ -28,9 +28,6 @@ public class RedisInviteMQListener {
     @Resource
     private LinkClickService linkClickService;
 
-    @Resource
-    private RaffleCountService raffleCountService;
-
     @Async("MQListener")
     @Scheduled(fixedRate = 15 * 60 * 1000)
     public void InviteSetListener() {
@@ -41,17 +38,5 @@ public class RedisInviteMQListener {
         }
         linkClickService.saveBatch(zSet.stream().map((linkClickJson) ->
                 JSON.parseObject(linkClickJson, LinkClick.class)).collect(Collectors.toList()));
-    }
-
-    @Async("MQListener")
-    @Scheduled(fixedRate = 15 * 60 * 1000)
-    public void RaffleCountSetListener() {
-        long curTime = System.currentTimeMillis();
-        Set<String> zSet = stringRedisTemplate.opsForZSet().range("mq:raffleCount", 0, curTime);
-        if (zSet == null || zSet.isEmpty()) {
-            return;
-        }
-        raffleCountService.saveOrUpdateBatch(zSet.stream().map((raffleCountJson) ->
-                JSON.parseObject(raffleCountJson, RaffleCount.class)).collect(Collectors.toList()));
     }
 }

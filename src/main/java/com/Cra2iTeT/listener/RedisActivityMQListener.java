@@ -8,6 +8,7 @@ import com.Cra2iTeT.util.LocalCacheFilter;
 import com.alibaba.fastjson.JSON;
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
+import org.redisson.api.RReadWriteLock;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -48,6 +49,7 @@ public class RedisActivityMQListener {
     @Resource(name = "MainExecutor")
     private Executor executor;
 
+    // TODO 扫描频率从30 改成 15 分钟
     @Async("MQListener")
     @Scheduled(fixedRate = 30 * 60 * 1000)
     public void ActivityUPSetListener() {
@@ -89,44 +91,40 @@ public class RedisActivityMQListener {
         Activity activity = JSON.parseObject(activityJson, Activity.class);
         DateTime curDateTime = new DateTime();
         if (activity != null && curDateTime.isAfter(activity.getEndTime())) {
-            RLock activityLock = redisson.getLock("lock:activity:" + activityId);
+            RReadWriteLock activityLock = redisson.getReadWriteLock("lock:activity:" + activityId);
+            RLock activityWriteLock = activityLock.writeLock();
             try {
-                boolean isLock = activityLock.tryLock(300, TimeUnit.MILLISECONDS);
-                if (isLock) {
-                    // 下架活动
-                    stringRedisTemplate.opsForValue().getAndDelete("activity:" + activityId);
-                    // 清空库存
-                    // 锁住库存
-                    RLock stockLock0 = redisson.getLock("lock:activity:stock0:" + activity);
-                    RLock stockLock1 = redisson.getLock("lock:activity:stock1:" + activity);
-                    CompletableFuture<Void> clearFuture2 = clearStock(stockLock0, 0, activityId);
-                    CompletableFuture<Void> clearFuture1 = clearStock(stockLock1, 1, activityId);
+                activityWriteLock.lock(300, TimeUnit.MILLISECONDS);
+                // 下架活动
+                stringRedisTemplate.opsForValue().getAndDelete("activity:" + activityId);
+                // 清空库存
+                CompletableFuture<Void> clearFuture2 = clearStock(0, activityId);
+                CompletableFuture<Void> clearFuture1 = clearStock(1, activityId);
+                CompletableFuture.runAsync(() -> {
+                    localCacheFilter.remove(String.valueOf(activityId));
+                }, executor);
+                CompletableFuture.runAsync(() -> {
+                    bloomFilter.remove("bloom:activity", activityId);
+                }, executor);
 
-                    clearFuture1.join();
-                    clearFuture2.join();
-                    // 删除消息
-                    stringRedisTemplate.opsForZSet().remove("mq:activity:down", activityId);
-                }
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                clearFuture1.join();
+                clearFuture2.join();
+
+
+
+                // 消费消息
+                stringRedisTemplate.opsForZSet().remove("mq:activity:down", activityId);
             } finally {
-                if (activityLock.isLocked() && activityLock.isHeldByCurrentThread()) {
-                    activityLock.unlock();
+                if (activityWriteLock.isLocked() && activityWriteLock.isHeldByCurrentThread()) {
+                    activityWriteLock.unlock();
                 }
             }
         }
     }
 
-    private CompletableFuture<Void> clearStock(RLock stockLock, int idx, long activityId) {
+    private CompletableFuture<Void> clearStock(int idx, long activityId) {
         return CompletableFuture.runAsync(() -> {
-            stockLock.lock(300, TimeUnit.MILLISECONDS);
-            try {
-                stringRedisTemplate.opsForHash().delete("activity:stock" + idx, activityId);
-            } finally {
-                if (stockLock.isLocked() && stockLock.isHeldByCurrentThread()) {
-                    stockLock.unlock();
-                }
-            }
+            stringRedisTemplate.opsForHash().delete("activity:stock" + idx, activityId);
         }, executor);
     }
 
@@ -135,9 +133,10 @@ public class RedisActivityMQListener {
                 StringUtils.isEmpty(stringRedisTemplate.opsForValue().get("activity:" + activityId))) {
             return;
         }
-        RLock activityLock = redisson.getLock("lock:activity:" + activityId);
+        RReadWriteLock activityLock = redisson.getReadWriteLock("lock:activity:" + activityId);
+        RLock activityWriteLock = activityLock.writeLock();
         try {
-            boolean isLock = activityLock.tryLock(300, TimeUnit.MILLISECONDS);
+            boolean isLock = activityWriteLock.tryLock(300, TimeUnit.MILLISECONDS);
             if (isLock) {
                 Activity activity = activityService.getById(activityId);
                 try {
@@ -158,8 +157,8 @@ public class RedisActivityMQListener {
                         }
                     }
                 } finally {
-                    if (activityLock.isLocked() && activityLock.isHeldByCurrentThread()) {
-                        activityLock.unlock();
+                    if (activityWriteLock.isLocked() && activityWriteLock.isHeldByCurrentThread()) {
+                        activityWriteLock.unlock();
                     }
                 }
             }
