@@ -16,7 +16,6 @@ import lombok.NoArgsConstructor;
 @TableName("order")
 public class Order {
     private Long id;
-    private String no;
     private Long userId;
     private Byte isDeleted;
     private DateTime createTime;
