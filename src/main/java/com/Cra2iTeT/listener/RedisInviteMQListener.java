@@ -1,9 +1,7 @@
 package com.Cra2iTeT.listener;
 
 import com.Cra2iTeT.domain.LinkClick;
-import com.Cra2iTeT.domain.RaffleCount;
 import com.Cra2iTeT.service.LinkClickService;
-import com.Cra2iTeT.service.RaffleCountService;
 import com.alibaba.fastjson.JSON;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;

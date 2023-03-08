@@ -7,7 +7,6 @@ import com.Cra2iTeT.domain.Link;
 import com.Cra2iTeT.domain.LinkClick;
 import com.Cra2iTeT.domain.RaffleCount;
 import com.Cra2iTeT.service.LinkService;
-import com.Cra2iTeT.service.RaffleCountService;
 import com.Cra2iTeT.util.BloomFilter;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -49,9 +48,6 @@ public class InviteController {
 
     @Resource(name = "MainExecutor")
     private Executor executor;
-
-    @Resource
-    private RaffleCountService raffleCountService;
 
     /**
      * 生成邀请连接
@@ -154,80 +150,80 @@ public class InviteController {
 
         RReadWriteLock activityLock = redisson.getReadWriteLock("lock:activity:" + activityId);
         RLock activityReadLock = activityLock.readLock();
-        if (activityReadLock.tryLock()) {
+        if (!activityReadLock.tryLock()) {
+            return new R<>(401, "活动正在调整，请稍后重试");
+        }
+        try {
+            // 获取邀请人已经获得的抽奖次数
+            CompletableFuture<RaffleCount> getRaffleFuture = getRaffleFuture(link.getBelongActivityId(),
+                    link.getBelongUserId());
+
+            long curTime = System.currentTimeMillis();
+
+            RLock inviteRecordLock = redisson.getLock("lock:invite:record:" + activityId + userId);
+            inviteRecordLock.lock(300, TimeUnit.MILLISECONDS);
             try {
-                // 获取邀请人已经获得的抽奖次数
-                CompletableFuture<Integer> getRaffleMaxFuture = getRaffleMaxFuture(link);
-
-                long curTime = System.currentTimeMillis();
-
-                RLock inviteRecordLock = redisson.getLock("lock:invite:record:" + activityId + userId);
-                inviteRecordLock.lock(300, TimeUnit.MILLISECONDS);
-                try {
-                    // 给inviteMQ发送消息，落库与写缓存分离，增加接口吞吐量
-                    CompletableFuture.runAsync(() -> {
-                        LinkClick linkClick = new LinkClick();
-                        linkClick.setActivityId(activityId);
-                        linkClick.setBelongUserId(link.getBelongUserId());
-                        linkClick.setUserId(userId);
-                        linkClick.setCreateTime(curTime);
-                        // 写入点击记录缓存
-                        stringRedisTemplate.opsForSet().add("activity:linkClick:record:" +
-                                activityId + link.getBelongUserId(), String.valueOf(userId));
-                        stringRedisTemplate.expire("activity:linkClick:record:" + activityId
-                                + link.getBelongUserId(), 3, TimeUnit.MINUTES);
-                        // 生产消息
-                        stringRedisTemplate.opsForZSet().add("mq:invite", JSON.toJSONString(linkClick),
-                                curTime + 15 * 60 * 1000);
-                    }, executor);
-                } finally {
-                    if (inviteRecordLock.isLocked() && inviteRecordLock.isHeldByCurrentThread()) {
-                        inviteRecordLock.unlock();
-                    }
-                }
-                try {
-                    Integer getRaffleMax = getRaffleMaxFuture.get();
-                    if (getRaffleMax >= 51) {
-                        return new R<>(200, "接受邀请成功");
-                    }
-                    RLock raffleCountLock = redisson.getLock("lock:raffleCount" + activityId + link.getBelongUserId());
-                    raffleCountLock.lock(300, TimeUnit.MILLISECONDS);
-                    try {
-                        getRaffleMax = getRaffleMaxFuture(link).get();
-                        Integer finalGetRaffleMax = getRaffleMax;
-                        CompletableFuture.runAsync(() -> {
-                            stringRedisTemplate.opsForHash().put("activity:raffleCount:max:" + activityId,
-                                    link.getBelongUserId(), String.valueOf(finalGetRaffleMax + 1));
-                        }, executor);
-                    } finally {
-                        if (raffleCountLock.isLocked() && raffleCountLock.isHeldByCurrentThread()) {
-                            raffleCountLock.unlock();
-                        }
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-                return new R<>(200, "成功接受邀请");
+                // 给inviteMQ发送消息，落库与写缓存分离，增加接口吞吐量
+                CompletableFuture.runAsync(() -> {
+                    LinkClick linkClick = new LinkClick();
+                    linkClick.setActivityId(activityId);
+                    linkClick.setBelongUserId(link.getBelongUserId());
+                    linkClick.setUserId(userId);
+                    linkClick.setCreateTime(curTime);
+                    // 写入点击记录缓存
+                    stringRedisTemplate.opsForSet().add("activity:linkClick:record:" +
+                            activityId + link.getBelongUserId(), String.valueOf(userId));
+                    stringRedisTemplate.expire("activity:linkClick:record:" + activityId
+                            + link.getBelongUserId(), 3, TimeUnit.MINUTES);
+                    // 生产消息
+                    stringRedisTemplate.opsForZSet().add("mq:invite", JSON.toJSONString(linkClick),
+                            curTime + 15 * 60 * 1000);
+                }, executor);
             } finally {
-                if (activityReadLock.isLocked() && activityReadLock.isHeldByCurrentThread()) {
-                    activityReadLock.unlock();
+                if (inviteRecordLock.isLocked() && inviteRecordLock.isHeldByCurrentThread()) {
+                    inviteRecordLock.unlock();
                 }
             }
-        } else {
-            return new R<>(401, "活动正在调整，请稍后重试");
+            try {
+                if (getRaffleFuture.get().getTotalCount() >= 51) {
+                    return new R<>(200, "接受邀请成功");
+                }
+                RReadWriteLock raffleCountLock = redisson.getReadWriteLock("lock:raffleCount:"
+                        + activityId + link.getBelongUserId());
+                RLock raffleCountWriteLock = raffleCountLock.writeLock();
+                raffleCountWriteLock.lock(300, TimeUnit.MILLISECONDS);
+                try {
+                    RaffleCount raffleCount = getRaffleFuture(link.getBelongActivityId(),
+                            link.getBelongUserId()).get();
+                    if (raffleCount.getTotalCount() >= 51) {
+                        return new R<>(200, "接受邀请成功");
+                    }
+                    CompletableFuture.runAsync(() -> {
+                        stringRedisTemplate.opsForHash().put("activity:raffleCount:max:"
+                                        + activityId, link.getBelongUserId(),
+                                String.valueOf(raffleCount.getTotalCount() + 1));
+                    }, executor);
+                } finally {
+                    if (raffleCountWriteLock.isLocked() && raffleCountWriteLock.isHeldByCurrentThread()) {
+                        raffleCountWriteLock.unlock();
+                    }
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+            return new R<>(200, "成功接受邀请");
+        } finally {
+            if (activityReadLock.isLocked() && activityReadLock.isHeldByCurrentThread()) {
+                activityReadLock.unlock();
+            }
         }
     }
 
-    private CompletableFuture<Integer> getRaffleMaxFuture(Link link) {
+    private CompletableFuture<RaffleCount> getRaffleFuture(long activityId, long userId) {
         return CompletableFuture.supplyAsync(() -> {
-            Integer raffleMax = (Integer) stringRedisTemplate.opsForHash()
-                    .get("activity:raffleCount:max:" + link.getBelongActivityId(), link.getBelongUserId());
-            if (raffleMax == null) {
-                raffleMax = raffleCountService.getOne(new LambdaQueryWrapper<RaffleCount>()
-                        .select(RaffleCount::getTotalCount).eq(RaffleCount::getUserId, link.getBelongUserId())
-                        .eq(RaffleCount::getActivityId, link.getBelongActivityId())).getTotalCount();
-            }
-            return raffleMax == null ? 1 : raffleMax;
+            RaffleCount raffleCount = (RaffleCount) stringRedisTemplate.opsForHash()
+                    .get("activity:raffleCount:" + activityId, userId);
+            return raffleCount == null ? new RaffleCount(0, 1) : raffleCount;
         }, executor);
     }
 }

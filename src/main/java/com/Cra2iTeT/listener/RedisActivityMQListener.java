@@ -49,9 +49,8 @@ public class RedisActivityMQListener {
     @Resource(name = "MainExecutor")
     private Executor executor;
 
-    // TODO 扫描频率从30 改成 15 分钟
     @Async("MQListener")
-    @Scheduled(fixedRate = 30 * 60 * 1000)
+    @Scheduled(fixedRate = 15 * 60 * 1000)
     public void ActivityUPSetListener() {
         long millis = System.currentTimeMillis();
         // 接受半小时以后的消息
@@ -104,6 +103,7 @@ public class RedisActivityMQListener {
                 CompletableFuture.runAsync(() -> {
                     localCacheFilter.remove(String.valueOf(activityId));
                     bloomFilter.remove("bloom:activity", activityId);
+                    stringRedisTemplate.opsForHash().delete("activity:raffleCount:max:" + activityId);
                 }, executor);
                 CompletableFuture.runAsync(() -> {
                     stringRedisTemplate.opsForHash().delete("activity:link:" + activityId);
