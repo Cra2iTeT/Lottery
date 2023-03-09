@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-//@Configuration
+@Configuration
 public class WebMvcConfiguration implements WebMvcConfigurer {
 
     private final LoginInterceptor loginInterceptor;
@@ -20,7 +20,7 @@ public class WebMvcConfiguration implements WebMvcConfigurer {
                 // 1： 拦截器注册
                 .addInterceptor(loginInterceptor)
                 // 2: 给拦截器配置并且定义规则
-                .excludePathPatterns("/user/login", "/user/save")
+                .excludePathPatterns("/login/register", "/login/login")
                 .addPathPatterns("/**");
     }
 }

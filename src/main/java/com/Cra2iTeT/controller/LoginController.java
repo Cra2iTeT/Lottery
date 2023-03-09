@@ -60,7 +60,7 @@ public class LoginController {
             String userJson = stringRedisTemplate.opsForValue().get("login:" + token);
             if (!StringUtils.isEmpty(userJson)) {
                 Long expire = stringRedisTemplate.getExpire("login:" + token);
-                expire = expire != null ? (expire + 60 * 1000) : 12 * 60 * 1000;
+                expire = expire != null ? (expire + 60 * 60 * 1000) : 12 * 60 * 60 * 1000;
                 stringRedisTemplate.expire("login:" + token, expire, TimeUnit.MILLISECONDS);
                 return new R<>(200, "注册成功");
             } else {
@@ -74,7 +74,7 @@ public class LoginController {
         }
         token = NumberUtil.genToken(one.getId());
         stringRedisTemplate.opsForValue().set("login:" + token, JSON.toJSONString(one),
-                24 * 60 * 1000, TimeUnit.MILLISECONDS);
+                24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         stringRedisTemplate.opsForHash().put("login:map", user.getAccNum(), token);
         bloomFilter.add("login:token", token);
         return new R<>(200, token);

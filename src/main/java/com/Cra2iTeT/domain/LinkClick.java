@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@TableName("linkClick")
+@TableName("link_click")
 public class LinkClick {
     @TableId(type = IdType.AUTO)
     private Long id;

@@ -27,7 +27,7 @@ public class RedisInviteMQListener {
     private LinkClickService linkClickService;
 
     @Async("MQListener")
-    @Scheduled(fixedRate = 15 * 60 * 1000)
+    @Scheduled(fixedRate = 6 * 60 * 1000)
     public void InviteSetListener() {
         long curTime = System.currentTimeMillis();
         Set<String> zSet = stringRedisTemplate.opsForZSet().range("mq:invite", 0, curTime);

@@ -30,13 +30,13 @@ public class LoginInterceptor implements HandlerInterceptor {
                              @NotNull HttpServletResponse response,
                              @NotNull Object handler) {
         String token = request.getHeader("token");
-        String userVoValue = stringRedisTemplate.opsForValue().get("user:login:token:" + token);
-        if (StringUtils.isEmpty(userVoValue)) {
+        String userJson = stringRedisTemplate.opsForValue().get("login:" + token);
+        if (StringUtils.isEmpty(userJson)) {
             response.setStatus(401);
             response.setContentType("Application/json;charset=utf-8");
             return false;
         }
-        User user = JSON.parseObject(userVoValue, User.class);
+        User user = JSON.parseObject(userJson, User.class);
         LocalUserInfo.put(user);
         return true;
     }

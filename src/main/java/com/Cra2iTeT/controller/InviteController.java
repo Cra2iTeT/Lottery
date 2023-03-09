@@ -6,6 +6,7 @@ import com.Cra2iTeT.commons.R;
 import com.Cra2iTeT.domain.Link;
 import com.Cra2iTeT.domain.LinkClick;
 import com.Cra2iTeT.domain.RaffleCount;
+import com.Cra2iTeT.service.LinkClickService;
 import com.Cra2iTeT.service.LinkService;
 import com.Cra2iTeT.util.BloomFilter;
 import com.alibaba.fastjson.JSON;
@@ -49,6 +50,9 @@ public class InviteController {
     @Resource(name = "MainExecutor")
     private Executor executor;
 
+    @Resource
+    private LinkClickService linkClickService;
+
     /**
      * 生成邀请连接
      *
@@ -81,7 +85,7 @@ public class InviteController {
             if (generateWriteLock.tryLock()) {
                 try {
                     String linkJson = (String) stringRedisTemplate.opsForHash()
-                            .get("activity:link:" + activityId, userId);
+                            .get("activity:link:" + activityId, String.valueOf(userId));
                     Link link;
                     if (StringUtils.isEmpty(linkJson)) {
                         link = linkService.getOne(new LambdaQueryWrapper<Link>()
@@ -144,7 +148,11 @@ public class InviteController {
         }
         if (bloomFilter.mightContain("activity:linkClick:" + activityId, userId) ||
                 Boolean.TRUE.equals(stringRedisTemplate.opsForSet()
-                        .isMember("activity:linkClick:record:" + activityId + link.getBelongUserId(), userId))) {
+                        .isMember("activity:linkClick:record:" + activityId + link.getBelongUserId(),
+                                String.valueOf(userId))) || linkClickService.getOne(new
+                LambdaQueryWrapper<LinkClick>().eq(LinkClick::getActivityId,activityId)
+                .eq(LinkClick::getUserId,userId).eq(LinkClick::getBelongUserId,link.getBelongUserId())
+                .last("limit 1")) != null) {
             return new R<>(401, "单人单场次只能接受一次邀请");
         }
 
@@ -174,10 +182,11 @@ public class InviteController {
                     stringRedisTemplate.opsForSet().add("activity:linkClick:record:" +
                             activityId + link.getBelongUserId(), String.valueOf(userId));
                     stringRedisTemplate.expire("activity:linkClick:record:" + activityId
-                            + link.getBelongUserId(), 3, TimeUnit.MINUTES);
+                            + link.getBelongUserId(), 7, TimeUnit.MINUTES);
                     // 生产消息
                     stringRedisTemplate.opsForZSet().add("mq:invite", JSON.toJSONString(linkClick),
                             curTime + 15 * 60 * 1000);
+                    bloomFilter.add("activity:linkClick:" + activityId, userId);
                 }, executor);
             } finally {
                 if (inviteRecordLock.isLocked() && inviteRecordLock.isHeldByCurrentThread()) {
@@ -220,9 +229,10 @@ public class InviteController {
 
     private CompletableFuture<RaffleCount> getRaffleFuture(long activityId, long userId) {
         return CompletableFuture.supplyAsync(() -> {
-            RaffleCount raffleCount = (RaffleCount) stringRedisTemplate.opsForHash()
-                    .get("activity:raffleCount:" + activityId, userId);
-            return raffleCount == null ? new RaffleCount(0, 1) : raffleCount;
+            String raffleCountJson = (String) stringRedisTemplate.opsForHash()
+                    .get("activity:raffleCount:" + activityId, String.valueOf(userId));
+            return StringUtils.isEmpty(raffleCountJson) ? new RaffleCount(0, 1)
+                    : JSON.parseObject(raffleCountJson, RaffleCount.class);
         }, executor);
     }
 }

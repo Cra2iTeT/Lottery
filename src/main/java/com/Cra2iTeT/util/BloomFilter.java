@@ -17,6 +17,7 @@ public class BloomFilter {
 
     public boolean add(String prefix, String key) {
         int offset = hash(key);
+        System.out.println(offset);
         return Boolean.TRUE
                 .equals(stringRedisTemplate.opsForValue().setBit(prefix, offset, true));
     }
@@ -103,13 +104,13 @@ public class BloomFilter {
 
     private int hash(String key) {
         int hashcode = HashUtil.apHash(key);
-        hashcode = HashUtil.rsHash(String.valueOf(hashcode));
-        return hashcode & Integer.MAX_VALUE;
+        hashcode = HashUtil.rsHash(String.valueOf(hashcode)) >>> 4;
+        return hashcode & 11111111;
     }
 
     private int hash(String key1, String key2) {
-        int hashcode1 = HashUtil.apHash(key1);
-        int hashcode2 = HashUtil.apHash(key2);
-        return HashUtil.rsHash("" + hashcode1 + hashcode2) & Integer.MAX_VALUE;
+        int hashcode1 = hash(key1);
+        int hashcode2 = hash(key2);
+        return HashUtil.rsHash("" + hashcode1 + hashcode2) & 11111111;
     }
 }

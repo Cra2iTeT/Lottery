@@ -65,7 +65,7 @@ public class RedisActivityMQListener {
     }
 
     @Async("MQListener")
-    @Scheduled(fixedRate = 30 * 60 * 1000)
+    @Scheduled(fixedRate = 15 * 60 * 1000)
     public void ActivityDownSetListener() {
         long millis = System.currentTimeMillis();
         // 接受半小时以后的消息
@@ -129,8 +129,7 @@ public class RedisActivityMQListener {
     }
 
     private void consumeActivityUpSetMQ(Long activityId) {
-        if (bloomFilter.mightContain("bloom:activity", activityId) ||
-                StringUtils.isEmpty(stringRedisTemplate.opsForValue().get("activity:" + activityId))) {
+        if (!StringUtils.isEmpty(stringRedisTemplate.opsForValue().get("activity:" + activityId))) {
             return;
         }
         RReadWriteLock activityLock = redisson.getReadWriteLock("lock:activity:" + activityId);
@@ -149,11 +148,14 @@ public class RedisActivityMQListener {
                             int stock1 = activity.getStock() - stock0;
                             setStock(activityId, stock0, 0);
                             setStock(activityId, stock1, 1);
+                            // 生成下架消息
+                            stringRedisTemplate.opsForZSet().add("mq:activity:down",
+                                    String.valueOf(activityId), activity.getEndTime().getTime());
                             // 设置过滤器
                             bloomFilter.add("bloom:activity", activityId);
                             localCacheFilter.add(String.valueOf(activityId), new AtomicLong(activity.getStock()));
                             // 删除消息
-                            stringRedisTemplate.opsForZSet().remove("mq:activity", activityId);
+                            stringRedisTemplate.opsForZSet().remove("mq:activity", String.valueOf(activityId));
                         }
                     }
                 } finally {
