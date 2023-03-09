@@ -18,11 +18,11 @@ public class ThreadPoolConfig {
     public Executor MQListener() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         //最大线程数
-        executor.setMaxPoolSize(4);
+        executor.setMaxPoolSize(2);
         //核心线程数
-        executor.setCorePoolSize(2);
+        executor.setCorePoolSize(1);
         //任务队列的大小
-        executor.setQueueCapacity(100);
+        executor.setQueueCapacity(20);
         //线程前缀名
         executor.setThreadNamePrefix("Redis-MQ-Listener-Executor-");
         //线程存活时间
@@ -36,34 +36,6 @@ public class ThreadPoolConfig {
          * DiscardOldestPolicy()：丢弃队列中最老的任务。
          */
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.AbortPolicy());
-        //线程初始化
-        executor.initialize();
-        return executor;
-    }
-
-    @Bean
-    public Executor MainExecutor() {
-        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        //最大线程数
-        executor.setMaxPoolSize(6);
-        //核心线程数
-        executor.setCorePoolSize(3);
-        //任务队列的大小
-        executor.setQueueCapacity(100);
-        //线程前缀名
-        Random random = new Random();
-        executor.setThreadNamePrefix("Main-Executor-");
-        //线程存活时间
-        executor.setKeepAliveSeconds(30);
-
-        /**
-         * 拒绝处理策略
-         * CallerRunsPolicy()：交由调用方线程运行，比如 main 线程。
-         * AbortPolicy()：直接抛出异常。
-         * DiscardPolicy()：直接丢弃。
-         * DiscardOldestPolicy()：丢弃队列中最老的任务。
-         */
-        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         //线程初始化
         executor.initialize();
         return executor;

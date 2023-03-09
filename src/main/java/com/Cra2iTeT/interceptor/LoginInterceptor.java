@@ -2,6 +2,7 @@ package com.Cra2iTeT.interceptor;
 
 import com.Cra2iTeT.commons.LocalUserInfo;
 import com.Cra2iTeT.domain.User;
+import com.Cra2iTeT.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -11,6 +12,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Random;
 
 /**
  * @author Cra2iTeT
@@ -37,6 +39,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             return false;
         }
         User user = JSON.parseObject(userJson, User.class);
+        user.setId(user.getId() - 9999999 + NumberUtil.genRandomNum(7));
         LocalUserInfo.put(user);
         return true;
     }

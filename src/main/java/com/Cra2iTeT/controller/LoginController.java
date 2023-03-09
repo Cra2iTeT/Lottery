@@ -4,7 +4,6 @@ import cn.hutool.core.util.IdUtil;
 import com.Cra2iTeT.commons.R;
 import com.Cra2iTeT.domain.User;
 import com.Cra2iTeT.service.UserService;
-import com.Cra2iTeT.util.BloomFilter;
 import com.Cra2iTeT.util.NumberUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -29,9 +28,6 @@ public class LoginController {
 
     @Resource
     private UserService userService;
-
-    @Resource
-    private BloomFilter bloomFilter;
 
     @RequestMapping("/register")
     public R<Void> register(@RequestBody User user) {
@@ -63,8 +59,6 @@ public class LoginController {
                 expire = expire != null ? (expire + 60 * 60 * 1000) : 12 * 60 * 60 * 1000;
                 stringRedisTemplate.expire("login:" + token, expire, TimeUnit.MILLISECONDS);
                 return new R<>(200, "注册成功");
-            } else {
-                bloomFilter.remove("login:token", token);
             }
         }
         User one = userService.getOne(new LambdaQueryWrapper<User>().eq(User::getAccNum, user.getAccNum())
@@ -76,7 +70,6 @@ public class LoginController {
         stringRedisTemplate.opsForValue().set("login:" + token, JSON.toJSONString(one),
                 24 * 60 * 60 * 1000, TimeUnit.MILLISECONDS);
         stringRedisTemplate.opsForHash().put("login:map", user.getAccNum(), token);
-        bloomFilter.add("login:token", token);
         return new R<>(200, token);
     }
 }
